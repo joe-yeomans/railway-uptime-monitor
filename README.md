@@ -2,6 +2,8 @@
 
 ![Railway Uptime Monitor icon](./icon.png)
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/IxsFmY?referralCode=lhTVtu&utm_medium=integration&utm_source=template&utm_campaign=generic)
+
 Railway-specific uptime monitoring for private or public service health checks with incident tracking and alert notifications.
 
 ## What this does
