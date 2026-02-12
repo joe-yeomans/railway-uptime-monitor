@@ -6,7 +6,7 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "types": ["bun"]
+    "types": ["bun-types"]
   },
   "include": ["src/**/*.ts"]
 }
