@@ -1,5 +1,7 @@
 # railway-uptime-monitor
 
+![Railway Uptime Monitor icon](./icon.png)
+
 Railway-specific uptime monitoring for private or public service health checks with incident tracking and alert notifications.
 
 ## What this does
