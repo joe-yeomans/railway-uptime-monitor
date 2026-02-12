@@ -1,6 +1,6 @@
 # railway-uptime-monitor
 
-![Railway Uptime Monitor icon](./icon.png)
+<img src="./icon.png" alt="Railway Uptime Monitor icon" width="120" />
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/IxsFmY?referralCode=lhTVtu&utm_medium=integration&utm_source=template&utm_campaign=generic)
 
