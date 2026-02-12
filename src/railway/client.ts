@@ -8,19 +8,24 @@ export interface RailwayGraphQLClient {
 
 export function createRailwayClient(apiToken: string): RailwayGraphQLClient {
   return {
-    async query<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+    async query<T>(
+      query: string,
+      variables: Record<string, unknown>,
+    ): Promise<T> {
       const response = await fetch(RAILWAY_API_URL, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiToken}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ query, variables })
+        body: JSON.stringify({ query, variables }),
       });
 
       if (!response.ok) {
         const text = await response.text();
-        throw new Error(`Railway GraphQL request failed (${response.status}): ${text}`);
+        throw new Error(
+          `Railway GraphQL request failed (${response.status}): ${text}`,
+        );
       }
 
       const json = (await response.json()) as {
@@ -30,9 +35,11 @@ export function createRailwayClient(apiToken: string): RailwayGraphQLClient {
 
       if (json.errors?.length) {
         logger.error("Railway GraphQL responded with errors", {
-          errors: json.errors.map((error) => error.message).join("; ")
+          errors: json.errors.map((error) => error.message).join("; "),
         });
-        throw new Error(`Railway GraphQL errors: ${json.errors.map((error) => error.message).join("; ")}`);
+        throw new Error(
+          `Railway GraphQL errors: ${json.errors.map((error) => error.message).join("; ")}`,
+        );
       }
 
       if (!json.data) {
@@ -40,6 +47,6 @@ export function createRailwayClient(apiToken: string): RailwayGraphQLClient {
       }
 
       return json.data;
-    }
+    },
   };
 }

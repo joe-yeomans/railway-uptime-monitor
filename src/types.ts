@@ -42,8 +42,9 @@ export interface DiscoveredRailwayService {
   serviceId: string;
   serviceName: string;
   healthcheckPath: string;
-  privateHost: string;
-  privatePort: number;
+  privateHost: string | null;
+  privatePort: number | null;
+  publicHost: string | null;
 }
 
 export interface DiscoveryFilter {

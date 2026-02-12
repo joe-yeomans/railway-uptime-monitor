@@ -7,19 +7,20 @@ export async function runHttpCheck(monitor: Monitor): Promise<CheckOutcome> {
   try {
     const response = await fetch(monitor.url, {
       method: "GET",
-      signal: AbortSignal.timeout(monitor.timeoutMs)
+      signal: AbortSignal.timeout(monitor.timeoutMs),
     });
 
     const latencyMs = Math.round(performance.now() - start);
     const isUp =
-      response.status >= monitor.expectedStatusMin && response.status <= monitor.expectedStatusMax;
+      response.status >= monitor.expectedStatusMin &&
+      response.status <= monitor.expectedStatusMax;
 
     return {
       outcome: isUp ? "UP" : "DOWN",
       checkedAt,
       statusCode: response.status,
       latencyMs,
-      error: isUp ? null : `Unexpected status: ${response.status}`
+      error: isUp ? null : `Unexpected status: ${response.status}`,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -28,7 +29,7 @@ export async function runHttpCheck(monitor: Monitor): Promise<CheckOutcome> {
       checkedAt,
       statusCode: null,
       latencyMs: Math.round(performance.now() - start),
-      error: message
+      error: message,
     };
   }
 }

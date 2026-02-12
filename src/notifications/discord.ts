@@ -10,27 +10,32 @@ export function createDiscordNotifier(webhookUrl: string): Notifier {
         body: JSON.stringify({
           embeds: [
             {
-              title: payload.event === "DOWN" ? "Service Down" : "Service Recovered",
+              title:
+                payload.event === "DOWN" ? "Service Down" : "Service Recovered",
               color: payload.event === "DOWN" ? 15158332 : 3066993,
               fields: [
                 { name: "Service", value: payload.serviceName, inline: true },
-                { name: "Environment", value: payload.environmentId, inline: true },
+                {
+                  name: "Environment",
+                  value: payload.environmentId,
+                  inline: true,
+                },
                 { name: "URL", value: payload.url },
                 { name: "Reason", value: payload.reason },
                 {
                   name: "Diagnostics",
-                  value: `status=${payload.statusCode ?? "n/a"}, latency=${payload.latencyMs ?? "n/a"}ms`
-                }
+                  value: `status=${payload.statusCode ?? "n/a"}, latency=${payload.latencyMs ?? "n/a"}ms`,
+                },
               ],
-              timestamp: payload.timestamp
-            }
-          ]
-        })
+              timestamp: payload.timestamp,
+            },
+          ],
+        }),
       });
 
       if (!response.ok) {
         throw new Error(`Discord webhook failed (${response.status})`);
       }
-    }
+    },
   };
 }

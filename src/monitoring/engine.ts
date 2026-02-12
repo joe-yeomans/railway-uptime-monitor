@@ -5,7 +5,7 @@ import {
   listEnabledMonitors,
   openIncident,
   resolveIncident,
-  updateMonitorState
+  updateMonitorState,
 } from "../db";
 import { logger } from "../logger";
 import type { Notifier } from "../notifications/types";
@@ -16,7 +16,9 @@ interface EngineDependencies {
   notifiers: Notifier[];
 }
 
-export async function runMonitoringCycle(deps: EngineDependencies): Promise<void> {
+export async function runMonitoringCycle(
+  deps: EngineDependencies,
+): Promise<void> {
   const monitors = listEnabledMonitors(deps.db);
   if (!monitors.length) {
     logger.warn("No enabled monitors found in database");
@@ -38,8 +40,15 @@ export async function runMonitoringCycle(deps: EngineDependencies): Promise<void
         state.consecutiveFailures += 1;
         state.consecutiveSuccesses = 0;
 
-        if (state.currentState !== "DOWN" && state.consecutiveFailures >= monitor.failureThreshold) {
-          const incidentId = openIncident(deps.db, monitor.id, check.error ?? "healthcheck failed");
+        if (
+          state.currentState !== "DOWN" &&
+          state.consecutiveFailures >= monitor.failureThreshold
+        ) {
+          const incidentId = openIncident(
+            deps.db,
+            monitor.id,
+            check.error ?? "healthcheck failed",
+          );
           state.currentState = "DOWN";
           state.openIncidentId = incidentId;
           await notifyAll(deps.notifiers, {
@@ -51,7 +60,7 @@ export async function runMonitoringCycle(deps: EngineDependencies): Promise<void
             reason: check.error ?? "healthcheck failed",
             statusCode: check.statusCode,
             latencyMs: check.latencyMs,
-            timestamp: check.checkedAt
+            timestamp: check.checkedAt,
           });
         }
       } else {
@@ -75,7 +84,7 @@ export async function runMonitoringCycle(deps: EngineDependencies): Promise<void
             reason: "Service passed health checks",
             statusCode: check.statusCode,
             latencyMs: check.latencyMs,
-            timestamp: check.checkedAt
+            timestamp: check.checkedAt,
           });
         } else if (state.currentState === "UNKNOWN") {
           state.currentState = "UP";
@@ -86,15 +95,19 @@ export async function runMonitoringCycle(deps: EngineDependencies): Promise<void
       logger.info("Completed check", {
         monitorId: monitor.id,
         service: monitor.serviceName,
+        url: monitor.url,
         outcome: check.outcome,
         statusCode: check.statusCode,
-        latencyMs: check.latencyMs
+        latencyMs: check.latencyMs,
       });
-    })
+    }),
   );
 }
 
-async function notifyAll(notifiers: Notifier[], payload: Parameters<Notifier["send"]>[0]): Promise<void> {
+async function notifyAll(
+  notifiers: Notifier[],
+  payload: Parameters<Notifier["send"]>[0],
+): Promise<void> {
   await Promise.all(
     notifiers.map(async (notifier) => {
       try {
@@ -104,9 +117,9 @@ async function notifyAll(notifiers: Notifier[], payload: Parameters<Notifier["se
           notifier: notifier.id,
           error: error instanceof Error ? error.message : String(error),
           event: payload.event,
-          monitorId: payload.monitorId
+          monitorId: payload.monitorId,
         });
       }
-    })
+    }),
   );
 }

@@ -1,6 +1,10 @@
 import type { AlertPayload, Notifier } from "./types";
 
-export function createResendNotifier(apiKey: string, fromEmail: string, toEmail: string): Notifier {
+export function createResendNotifier(
+  apiKey: string,
+  fromEmail: string,
+  toEmail: string,
+): Notifier {
   return {
     id: "resend",
     async send(payload: AlertPayload): Promise<void> {
@@ -24,19 +28,19 @@ export function createResendNotifier(apiKey: string, fromEmail: string, toEmail:
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           from: fromEmail,
           to: [toEmail],
           subject,
-          html
-        })
+          html,
+        }),
       });
 
       if (!response.ok) {
         throw new Error(`Resend API failed (${response.status})`);
       }
-    }
+    },
   };
 }

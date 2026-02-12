@@ -17,12 +17,18 @@ export function buildNotifiers(config: AppConfig): Notifier[] {
   }
 
   if (config.telegram) {
-    notifiers.push(createTelegramNotifier(config.telegram.botToken, config.telegram.chatId));
+    notifiers.push(
+      createTelegramNotifier(config.telegram.botToken, config.telegram.chatId),
+    );
   }
 
   if (config.resend) {
     notifiers.push(
-      createResendNotifier(config.resend.apiKey, config.resend.fromEmail, config.resend.toEmail)
+      createResendNotifier(
+        config.resend.apiKey,
+        config.resend.fromEmail,
+        config.resend.toEmail,
+      ),
     );
   }
 

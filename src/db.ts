@@ -1,8 +1,13 @@
 import { Database } from "bun:sqlite";
 import { and, eq, notInArray, sql } from "drizzle-orm";
 import { drizzle, type BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
-import type { CheckOutcome, Monitor, MonitorState, MonitorStatus } from "./types";
-import * as schema from "./schema";
+import type {
+  CheckOutcome,
+  Monitor,
+  MonitorState,
+  MonitorStatus,
+} from "./types";
+import type * as schema from "./schema";
 import { checkResults, incidents, monitors, monitorState } from "./schema";
 
 export interface AppDatabase {
@@ -20,22 +25,31 @@ export function openDatabase(path: string): AppDatabase {
       monitors,
       monitorState,
       checkResults,
-      incidents
-    }
+      incidents,
+    },
   });
 
   return { client, orm };
 }
 
 export async function runMigrations(db: AppDatabase): Promise<void> {
-  const sqlText = await Bun.file(`${process.cwd()}/migrations/0001_init.sql`).text();
+  const sqlText = await Bun.file(
+    `${process.cwd()}/migrations/0001_init.sql`,
+  ).text();
   db.client.exec(sqlText);
 }
 
-export function upsertMonitors(db: AppDatabase, monitorInputs: Array<Omit<Monitor, "id">>): void {
+export function upsertMonitors(
+  db: AppDatabase,
+  monitorInputs: Array<Omit<Monitor, "id">>,
+): void {
   db.orm.transaction((tx) => {
     for (const monitor of monitorInputs) {
-      const id = createMonitorId(monitor.projectId, monitor.environmentId, monitor.serviceId);
+      const id = createMonitorId(
+        monitor.projectId,
+        monitor.environmentId,
+        monitor.serviceId,
+      );
 
       tx.insert(monitors)
         .values({
@@ -54,7 +68,7 @@ export function upsertMonitors(db: AppDatabase, monitorInputs: Array<Omit<Monito
           expectedStatusMax: monitor.expectedStatusMax,
           enabled: true,
           createdAt: sql`CURRENT_TIMESTAMP`,
-          updatedAt: sql`CURRENT_TIMESTAMP`
+          updatedAt: sql`CURRENT_TIMESTAMP`,
         })
         .onConflictDoUpdate({
           target: monitors.id,
@@ -69,8 +83,8 @@ export function upsertMonitors(db: AppDatabase, monitorInputs: Array<Omit<Monito
             expectedStatusMin: monitor.expectedStatusMin,
             expectedStatusMax: monitor.expectedStatusMax,
             enabled: true,
-            updatedAt: sql`CURRENT_TIMESTAMP`
-          }
+            updatedAt: sql`CURRENT_TIMESTAMP`,
+          },
         })
         .run();
 
@@ -84,7 +98,7 @@ export function upsertMonitors(db: AppDatabase, monitorInputs: Array<Omit<Monito
           lastStatusCode: null,
           lastLatencyMs: null,
           lastError: null,
-          openIncidentId: null
+          openIncidentId: null,
         })
         .onConflictDoNothing()
         .run();
@@ -92,7 +106,11 @@ export function upsertMonitors(db: AppDatabase, monitorInputs: Array<Omit<Monito
 
     if (monitorInputs.length > 0) {
       const ids = monitorInputs.map((monitor) =>
-        createMonitorId(monitor.projectId, monitor.environmentId, monitor.serviceId)
+        createMonitorId(
+          monitor.projectId,
+          monitor.environmentId,
+          monitor.serviceId,
+        ),
       );
 
       tx.update(monitors)
@@ -101,8 +119,8 @@ export function upsertMonitors(db: AppDatabase, monitorInputs: Array<Omit<Monito
           and(
             eq(monitors.projectId, monitorInputs[0].projectId),
             eq(monitors.environmentId, monitorInputs[0].environmentId),
-            notInArray(monitors.id, ids)
-          )
+            notInArray(monitors.id, ids),
+          ),
         )
         .run();
     }
@@ -129,11 +147,14 @@ export function listEnabledMonitors(db: AppDatabase): Monitor[] {
       recoveryThreshold: monitor.recoveryThreshold,
       expectedStatusMin: monitor.expectedStatusMin,
       expectedStatusMax: monitor.expectedStatusMax,
-      enabled: monitor.enabled
+      enabled: monitor.enabled,
     }));
 }
 
-export function getMonitorState(db: AppDatabase, monitorId: string): MonitorState {
+export function getMonitorState(
+  db: AppDatabase,
+  monitorId: string,
+): MonitorState {
   const row = db.orm
     .select()
     .from(monitorState)
@@ -153,22 +174,29 @@ export function getMonitorState(db: AppDatabase, monitorId: string): MonitorStat
     lastStatusCode: row.lastStatusCode,
     lastLatencyMs: row.lastLatencyMs,
     lastError: row.lastError,
-    openIncidentId: row.openIncidentId
+    openIncidentId: row.openIncidentId,
   };
 }
 
-export function insertCheckResult(db: AppDatabase, monitorId: string, check: CheckOutcome): string {
+export function insertCheckResult(
+  db: AppDatabase,
+  monitorId: string,
+  check: CheckOutcome,
+): string {
   const resultId = crypto.randomUUID();
 
-  db.orm.insert(checkResults).values({
-    id: resultId,
-    monitorId,
-    checkedAt: check.checkedAt,
-    outcome: check.outcome,
-    statusCode: check.statusCode,
-    latencyMs: check.latencyMs,
-    error: check.error
-  }).run();
+  db.orm
+    .insert(checkResults)
+    .values({
+      id: resultId,
+      monitorId,
+      checkedAt: check.checkedAt,
+      outcome: check.outcome,
+      statusCode: check.statusCode,
+      latencyMs: check.latencyMs,
+      error: check.error,
+    })
+    .run();
 
   return resultId;
 }
@@ -184,38 +212,53 @@ export function updateMonitorState(db: AppDatabase, state: MonitorState): void {
       lastStatusCode: state.lastStatusCode,
       lastLatencyMs: state.lastLatencyMs,
       lastError: state.lastError,
-      openIncidentId: state.openIncidentId
+      openIncidentId: state.openIncidentId,
     })
     .where(eq(monitorState.monitorId, state.monitorId))
     .run();
 }
 
-export function openIncident(db: AppDatabase, monitorId: string, reason: string): string {
+export function openIncident(
+  db: AppDatabase,
+  monitorId: string,
+  reason: string,
+): string {
   const incidentId = crypto.randomUUID();
 
-  db.orm.insert(incidents).values({
-    id: incidentId,
-    monitorId,
-    status: "OPEN",
-    startedAt: sql`CURRENT_TIMESTAMP`,
-    startReason: reason
-  }).run();
+  db.orm
+    .insert(incidents)
+    .values({
+      id: incidentId,
+      monitorId,
+      status: "OPEN",
+      startedAt: sql`CURRENT_TIMESTAMP`,
+      startReason: reason,
+    })
+    .run();
 
   return incidentId;
 }
 
-export function resolveIncident(db: AppDatabase, incidentId: string, reason: string): void {
+export function resolveIncident(
+  db: AppDatabase,
+  incidentId: string,
+  reason: string,
+): void {
   db.orm
     .update(incidents)
     .set({
       status: "RESOLVED",
       resolvedAt: sql`CURRENT_TIMESTAMP`,
-      resolveReason: reason
+      resolveReason: reason,
     })
     .where(eq(incidents.id, incidentId))
     .run();
 }
 
-function createMonitorId(projectId: string, environmentId: string, serviceId: string): string {
+function createMonitorId(
+  projectId: string,
+  environmentId: string,
+  serviceId: string,
+): string {
   return `${projectId}:${environmentId}:${serviceId}`;
 }

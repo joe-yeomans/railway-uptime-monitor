@@ -1,15 +1,43 @@
 import { loadConfig } from "./config";
-import { listEnabledMonitors, openDatabase, runMigrations, upsertMonitors } from "./db";
+import {
+  listEnabledMonitors,
+  openDatabase,
+  runMigrations,
+  upsertMonitors,
+} from "./db";
 import { logger } from "./logger";
 import { runMonitoringCycle } from "./monitoring/engine";
 import { buildNotifiers } from "./notifications";
 import { createRailwayClient } from "./railway/client";
 import { discoverRailwayServices } from "./railway/discovery";
+import type { DiscoveredRailwayService } from "./types";
 
 const args = new Set(Bun.argv.slice(2));
 
 async function main(): Promise<void> {
   const config = loadConfig();
+  const startedAt = Date.now();
+  const healthServer = Bun.serve({
+    port: config.healthPort,
+    fetch(request: Request) {
+      const { pathname } = new URL(request.url);
+      if (request.method === "GET" && pathname === config.healthcheckPath) {
+        const uptimeSeconds = Math.floor((Date.now() - startedAt) / 1000);
+        return Response.json({
+          status: "ok",
+          uptimeSeconds,
+        });
+      }
+
+      return new Response("Not Found", { status: 404 });
+    },
+  });
+
+  logger.info("Healthcheck server listening", {
+    port: healthServer.port,
+    path: config.healthcheckPath,
+  });
+
   const db = openDatabase(config.databasePath);
   await runMigrations(db);
 
@@ -30,30 +58,56 @@ async function main(): Promise<void> {
       config.railwayEnvironmentId,
       {
         includeServices: config.serviceIncludeList,
-        excludeServices: config.serviceExcludeList
-      }
+        excludeServices: config.serviceExcludeList,
+      },
     );
 
-    const monitorInputs = discovered.map((service) => ({
-      serviceId: service.serviceId,
-      serviceName: service.serviceName,
-      projectId: config.railwayProjectId,
-      environmentId: config.railwayEnvironmentId,
-      url: `http://${service.privateHost}:${service.privatePort}${service.healthcheckPath}`,
-      healthcheckPath: service.healthcheckPath,
-      intervalSeconds: config.checkIntervalSeconds,
-      timeoutMs: config.checkTimeoutMs,
-      failureThreshold: config.failureThreshold,
-      recoveryThreshold: config.recoveryThreshold,
-      expectedStatusMin: config.expectedStatusMin,
-      expectedStatusMax: config.expectedStatusMax,
-      enabled: true
-    }));
+    const monitorInputs = discovered
+      .map((service) => {
+        const url = resolveMonitorUrl(service, config.targetDomainMode);
+        if (!url) {
+          logger.warn(
+            "Skipping service due to unavailable URL for selected TARGET_DOMAIN_MODE",
+            {
+              service: service.serviceName,
+              targetDomainMode: config.targetDomainMode,
+            },
+          );
+          return null;
+        }
+
+        return {
+          serviceId: service.serviceId,
+          serviceName: service.serviceName,
+          projectId: config.railwayProjectId,
+          environmentId: config.railwayEnvironmentId,
+          url,
+          healthcheckPath: service.healthcheckPath,
+          intervalSeconds: config.checkIntervalSeconds,
+          timeoutMs: config.checkTimeoutMs,
+          failureThreshold: config.failureThreshold,
+          recoveryThreshold: config.recoveryThreshold,
+          expectedStatusMin: config.expectedStatusMin,
+          expectedStatusMax: config.expectedStatusMax,
+          enabled: true,
+        };
+      })
+      .filter(
+        (monitor): monitor is NonNullable<typeof monitor> => monitor !== null,
+      );
+
+    for (const monitor of monitorInputs) {
+      logger.info("Configured monitor target", {
+        service: monitor.serviceName,
+        url: monitor.url,
+        targetDomainMode: config.targetDomainMode,
+      });
+    }
 
     upsertMonitors(db, monitorInputs);
     logger.info("Discovery refresh complete", {
       discoveredServices: discovered.length,
-      enabledMonitors: listEnabledMonitors(db).length
+      enabledMonitors: listEnabledMonitors(db).length,
     });
   };
 
@@ -63,7 +117,7 @@ async function main(): Promise<void> {
   setInterval(() => {
     refreshMonitors().catch((error) => {
       logger.error("Discovery refresh failed", {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
     });
   }, discoveryMs);
@@ -72,20 +126,40 @@ async function main(): Promise<void> {
   setInterval(() => {
     runMonitoringCycle({ db, notifiers }).catch((error) => {
       logger.error("Monitoring cycle failed", {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
     });
   }, checkMs);
 
   logger.info("Monitor started", {
     checkIntervalSeconds: config.checkIntervalSeconds,
-    discoveryIntervalSeconds: config.discoveryIntervalSeconds
+    discoveryIntervalSeconds: config.discoveryIntervalSeconds,
+    targetDomainMode: config.targetDomainMode,
+    healthcheckPath: config.healthcheckPath,
+    healthPort: healthServer.port,
   });
+}
+
+function resolveMonitorUrl(
+  service: DiscoveredRailwayService,
+  mode: "private" | "public" | "auto",
+): string | null {
+  const privateUrl =
+    service.privateHost && service.privatePort
+      ? `http://${service.privateHost}:${service.privatePort}${service.healthcheckPath}`
+      : null;
+  const publicUrl = service.publicHost
+    ? `https://${service.publicHost}${service.healthcheckPath}`
+    : null;
+
+  if (mode === "private") return privateUrl;
+  if (mode === "public") return publicUrl;
+  return privateUrl ?? publicUrl;
 }
 
 main().catch((error) => {
   logger.error("Fatal startup error", {
-    error: error instanceof Error ? error.message : String(error)
+    error: error instanceof Error ? error.message : String(error),
   });
   process.exit(1);
 });

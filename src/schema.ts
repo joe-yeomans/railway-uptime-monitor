@@ -16,7 +16,7 @@ export const monitors = sqliteTable("monitors", {
   expectedStatusMax: integer("expected_status_max").notNull(),
   enabled: integer("enabled", { mode: "boolean" }).notNull(),
   createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull()
+  updatedAt: text("updated_at").notNull(),
 });
 
 export const monitorState = sqliteTable("monitor_state", {
@@ -28,7 +28,7 @@ export const monitorState = sqliteTable("monitor_state", {
   lastStatusCode: integer("last_status_code"),
   lastLatencyMs: integer("last_latency_ms"),
   lastError: text("last_error"),
-  openIncidentId: text("open_incident_id")
+  openIncidentId: text("open_incident_id"),
 });
 
 export const checkResults = sqliteTable("check_results", {
@@ -38,7 +38,7 @@ export const checkResults = sqliteTable("check_results", {
   outcome: text("outcome").notNull(),
   statusCode: integer("status_code"),
   latencyMs: integer("latency_ms"),
-  error: text("error")
+  error: text("error"),
 });
 
 export const incidents = sqliteTable("incidents", {
@@ -48,5 +48,5 @@ export const incidents = sqliteTable("incidents", {
   startedAt: text("started_at").notNull(),
   resolvedAt: text("resolved_at"),
   startReason: text("start_reason").notNull(),
-  resolveReason: text("resolve_reason")
+  resolveReason: text("resolve_reason"),
 });

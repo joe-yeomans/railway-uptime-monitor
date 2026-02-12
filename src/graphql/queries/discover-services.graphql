@@ -1,0 +1,37 @@
+query DiscoverServices($projectId: String!) {
+  project(id: $projectId) {
+    environments {
+      edges {
+        node {
+          id
+          serviceInstances {
+            edges {
+              node {
+                id
+                serviceId
+                serviceName
+                service {
+                  id
+                  name
+                }
+                cronSchedule
+                healthcheckPath
+                domains {
+                  serviceDomains {
+                    domain
+                    suffix
+                    targetPort
+                  }
+                  customDomains {
+                    domain
+                    targetPort
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

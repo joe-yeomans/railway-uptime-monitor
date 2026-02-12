@@ -11,6 +11,8 @@ export interface ResendConfig {
 
 export interface AppConfig {
   databasePath: string;
+  healthPort: number;
+  healthcheckPath: string;
   railwayApiToken: string;
   railwayProjectId: string;
   railwayEnvironmentId: string;
@@ -21,6 +23,7 @@ export interface AppConfig {
   recoveryThreshold: number;
   expectedStatusMin: number;
   expectedStatusMax: number;
+  targetDomainMode: "private" | "public" | "auto";
   slackWebhookUrl?: string;
   discordWebhookUrl?: string;
   telegram?: TelegramConfig;
@@ -34,11 +37,15 @@ export function loadConfig(): AppConfig {
   const railwayProjectId = required("RAILWAY_PROJECT_ID");
   const railwayEnvironmentId = required("RAILWAY_ENVIRONMENT_ID");
 
-  const databasePath = resolvePath(Bun.env.DATABASE_PATH ?? "./data/monitor.db");
+  const databasePath = resolvePath(
+    Bun.env.DATABASE_PATH ?? "./data/monitor.db",
+  );
   ensureParentDirectory(databasePath);
 
   return {
     databasePath,
+    healthPort: numeric("PORT", 8080),
+    healthcheckPath: healthcheckPath(),
     railwayApiToken,
     railwayProjectId,
     railwayEnvironmentId,
@@ -49,12 +56,13 @@ export function loadConfig(): AppConfig {
     recoveryThreshold: numeric("RECOVERY_THRESHOLD", 2),
     expectedStatusMin: numeric("EXPECTED_STATUS_MIN", 200),
     expectedStatusMax: numeric("EXPECTED_STATUS_MAX", 299),
+    targetDomainMode: targetDomainMode(),
     slackWebhookUrl: optional("SLACK_WEBHOOK_URL"),
     discordWebhookUrl: optional("DISCORD_WEBHOOK_URL"),
     telegram: telegramConfig(),
     resend: resendConfig(),
     serviceIncludeList: csv("SERVICE_INCLUDE_LIST"),
-    serviceExcludeList: csv("SERVICE_EXCLUDE_LIST")
+    serviceExcludeList: csv("SERVICE_EXCLUDE_LIST"),
   };
 }
 
@@ -103,6 +111,36 @@ function resendConfig(): ResendConfig | undefined {
   const toEmail = optional("RESEND_TO_EMAIL");
   if (!apiKey || !fromEmail || !toEmail) return undefined;
   return { apiKey, fromEmail, toEmail };
+}
+
+function targetDomainMode(): "private" | "public" | "auto" {
+  const raw = optional("TARGET_DOMAIN_MODE");
+  if (!raw) {
+    return Bun.env.NODE_ENV === "production" ? "private" : "public";
+  }
+
+  const normalized = raw.toLowerCase();
+  if (
+    normalized === "private" ||
+    normalized === "public" ||
+    normalized === "auto"
+  ) {
+    return normalized;
+  }
+
+  throw new Error("TARGET_DOMAIN_MODE must be one of: private, public, auto");
+}
+
+function healthcheckPath(): string {
+  const raw = optional("HEALTHCHECK_PATH");
+  if (!raw) return "/healthz";
+
+  const normalized = raw.trim();
+  if (!normalized.startsWith("/")) {
+    throw new Error("HEALTHCHECK_PATH must start with /");
+  }
+
+  return normalized;
 }
 
 function resolvePath(path: string): string {
