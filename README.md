@@ -1,2 +1,7 @@
 # railway-uptime-monitor
-A tool that automatically monitors railway services
+
+Railway-specific uptime monitoring for private service health checks and alerting.
+
+## Status
+
+This project is currently under development.

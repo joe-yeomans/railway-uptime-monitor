@@ -1,0 +1,26 @@
+{
+  "name": "railway-uptime-monitor",
+  "version": "0.1.0",
+  "description": "Railway-specific uptime monitor with private-network HTTP checks and notifier integrations.",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/main.ts",
+    "start": "bun run src/main.ts",
+    "migrate": "bun run src/main.ts --migrate-only",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.9",
+    "drizzle-kit": "^0.31.9",
+    "typescript": "^5.9.3"
+  },
+  "module": "index.ts",
+  "private": true,
+  "dependencies": {
+    "drizzle-orm": "^0.45.1"
+  }
+}
