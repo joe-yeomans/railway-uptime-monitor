@@ -41,6 +41,20 @@ query DiscoverServices($projectId: String!) {
 }
 `;
 
+const SERVICE_DEPLOYMENT_VARIABLES_QUERY = `
+query ServiceDeploymentVariables(
+  $projectId: String!
+  $environmentId: String!
+  $serviceId: String!
+) {
+  variablesForServiceDeployment(
+    projectId: $projectId
+    environmentId: $environmentId
+    serviceId: $serviceId
+  )
+}
+`;
+
 interface DiscoveryQueryResult {
   project: {
     environments: {
@@ -76,6 +90,19 @@ interface DiscoveryQueryResult {
   };
 }
 
+interface ServiceDeploymentVariablesQueryResult {
+  variablesForServiceDeployment?: unknown;
+}
+
+interface DiscoveredServiceCandidate {
+  serviceId: string;
+  serviceName: string;
+  healthcheckPath: string;
+  privateHost: string | null;
+  defaultPrivatePort: number;
+  publicHost: string | null;
+}
+
 export async function discoverRailwayServices(
   client: RailwayGraphQLClient,
   projectId: string,
@@ -98,7 +125,7 @@ export async function discoverRailwayServices(
   const includeSet = new Set(filter.includeServices ?? []);
   const excludeSet = new Set(filter.excludeServices ?? []);
 
-  const discovered = environment.serviceInstances.edges
+  const candidates = environment.serviceInstances.edges
     .map((edge) => edge.node)
     .map((instance) => {
       const serviceId = instance.serviceId ?? instance.service?.id;
@@ -114,9 +141,6 @@ export async function discoverRailwayServices(
       const privateHost =
         privateDomain?.domain ??
         (serviceName ? `${serviceName}.railway.internal` : null);
-      const privatePort = privateHost
-        ? (privateDomain?.targetPort ?? 80)
-        : null;
 
       if (hasCronSchedule) return null;
       if (!serviceId || !serviceName || !healthcheckPath) return null;
@@ -126,17 +150,74 @@ export async function discoverRailwayServices(
         serviceName,
         healthcheckPath,
         privateHost,
-        privatePort,
+        defaultPrivatePort: privateDomain?.targetPort ?? 80,
         publicHost: publicDomain?.domain ?? null,
-      } satisfies DiscoveredRailwayService;
-    });
-
-  return discovered
-    .filter((service): service is DiscoveredRailwayService => service !== null)
+      } satisfies DiscoveredServiceCandidate;
+    })
+    .filter((service): service is DiscoveredServiceCandidate => service !== null)
     .filter((service) =>
       includeSet.size ? includeSet.has(service.serviceName) : true,
     )
     .filter((service) => !excludeSet.has(service.serviceName));
+
+  return Promise.all(
+    candidates.map(async (service) => {
+      const portFromVariables = service.privateHost
+        ? await resolveServicePortFromVariables(client, {
+            projectId,
+            environmentId,
+            serviceId: service.serviceId,
+          })
+        : null;
+      const privatePort = service.privateHost
+        ? (portFromVariables ?? service.defaultPrivatePort)
+        : null;
+
+      return {
+        serviceId: service.serviceId,
+        serviceName: service.serviceName,
+        healthcheckPath: service.healthcheckPath,
+        privateHost: service.privateHost,
+        privatePort,
+        publicHost: service.publicHost,
+      } satisfies DiscoveredRailwayService;
+    }),
+  );
+}
+
+async function resolveServicePortFromVariables(
+  client: RailwayGraphQLClient,
+  input: {
+    projectId: string;
+    environmentId: string;
+    serviceId: string;
+  },
+): Promise<number | null> {
+  let data: ServiceDeploymentVariablesQueryResult;
+  try {
+    data = await client.query<ServiceDeploymentVariablesQueryResult>(
+      SERVICE_DEPLOYMENT_VARIABLES_QUERY,
+      input,
+    );
+  } catch {
+    return null;
+  }
+
+  const variables = data.variablesForServiceDeployment;
+  if (!variables || typeof variables !== "object" || Array.isArray(variables)) {
+    return null;
+  }
+
+  return parsePort((variables as Record<string, unknown>).PORT);
+}
+
+function parsePort(raw: unknown): number | null {
+  if (typeof raw !== "string" && typeof raw !== "number") return null;
+  const normalized = String(raw).trim();
+  if (!/^\d+$/.test(normalized)) return null;
+  const parsed = Number.parseInt(normalized, 10);
+  if (!Number.isFinite(parsed) || parsed < 1 || parsed > 65535) return null;
+  return parsed;
 }
 
 function normalizePath(path: string | null): string | null {
