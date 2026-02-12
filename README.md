@@ -4,4 +4,4 @@ Railway-specific uptime monitoring for private service health checks and alertin
 
 ## Status
 
-This project is currently under development.
+This project is currently under development. More updates to come
