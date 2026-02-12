@@ -24,6 +24,8 @@ export interface AppConfig {
   expectedStatusMin: number;
   expectedStatusMax: number;
   targetDomainMode: "private" | "public" | "auto";
+  railwayServiceId?: string;
+  railwayServiceName?: string;
   slackWebhookUrl?: string;
   discordWebhookUrl?: string;
   telegram?: TelegramConfig;
@@ -57,6 +59,8 @@ export function loadConfig(): AppConfig {
     expectedStatusMin: numeric("EXPECTED_STATUS_MIN", 200),
     expectedStatusMax: numeric("EXPECTED_STATUS_MAX", 299),
     targetDomainMode: targetDomainMode(),
+    railwayServiceId: optional("RAILWAY_SERVICE_ID"),
+    railwayServiceName: optional("RAILWAY_SERVICE_NAME"),
     slackWebhookUrl: optional("SLACK_WEBHOOK_URL"),
     discordWebhookUrl: optional("DISCORD_WEBHOOK_URL"),
     telegram: telegramConfig(),

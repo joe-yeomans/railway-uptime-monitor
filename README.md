@@ -72,6 +72,7 @@ bun run dev
 
 - `SERVICE_INCLUDE_LIST`: comma-separated service names
 - `SERVICE_EXCLUDE_LIST`: comma-separated service names
+- Self service is auto-skipped when Railway provides runtime metadata (`RAILWAY_SERVICE_ID`/`RAILWAY_SERVICE_NAME`)
 
 ### Optional notifications
 

@@ -1,4 +1,5 @@
 import { loadConfig } from "./config";
+import type { AppConfig } from "./config";
 import {
   listEnabledMonitors,
   openDatabase,
@@ -61,8 +62,11 @@ async function main(): Promise<void> {
         excludeServices: config.serviceExcludeList,
       },
     );
+    const targetServices = discovered.filter((service) =>
+      shouldMonitorService(service, config),
+    );
 
-    const monitorInputs = discovered
+    const monitorInputs = targetServices
       .map((service) => {
         const url = resolveMonitorUrl(service, config.targetDomainMode);
         if (!url) {
@@ -107,6 +111,7 @@ async function main(): Promise<void> {
     upsertMonitors(db, monitorInputs);
     logger.info("Discovery refresh complete", {
       discoveredServices: discovered.length,
+      skippedSelfServices: discovered.length - targetServices.length,
       enabledMonitors: listEnabledMonitors(db).length,
     });
   };
@@ -155,6 +160,36 @@ function resolveMonitorUrl(
   if (mode === "private") return privateUrl;
   if (mode === "public") return publicUrl;
   return privateUrl ?? publicUrl;
+}
+
+function shouldMonitorService(
+  service: DiscoveredRailwayService,
+  config: AppConfig,
+): boolean {
+  if (
+    config.railwayServiceId &&
+    service.serviceId === config.railwayServiceId
+  ) {
+    logger.info("Skipping self service by id", {
+      service: service.serviceName,
+      serviceId: service.serviceId,
+    });
+    return false;
+  }
+
+  if (
+    config.railwayServiceName &&
+    service.serviceName.toLowerCase() ===
+      config.railwayServiceName.toLowerCase()
+  ) {
+    logger.info("Skipping self service by name", {
+      service: service.serviceName,
+      serviceId: service.serviceId,
+    });
+    return false;
+  }
+
+  return true;
 }
 
 main().catch((error) => {
