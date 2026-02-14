@@ -1,5 +1,5 @@
-import { loadConfig } from "./config";
 import type { AppConfig } from "./config";
+import { loadConfig } from "./config";
 import {
   listEnabledMonitors,
   openDatabase,

@@ -1,4 +1,4 @@
-import type { DiscoveryFilter, DiscoveredRailwayService } from "../types";
+import type { DiscoveredRailwayService, DiscoveryFilter } from "../types";
 import type { RailwayGraphQLClient } from "./client";
 
 const DISCOVERY_QUERY = `
@@ -154,7 +154,9 @@ export async function discoverRailwayServices(
         publicHost: publicDomain?.domain ?? null,
       } satisfies DiscoveredServiceCandidate;
     })
-    .filter((service): service is DiscoveredServiceCandidate => service !== null)
+    .filter(
+      (service): service is DiscoveredServiceCandidate => service !== null,
+    )
     .filter((service) =>
       includeSet.size ? includeSet.has(service.serviceName) : true,
     )

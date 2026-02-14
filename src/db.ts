@@ -1,14 +1,14 @@
 import { Database } from "bun:sqlite";
 import { and, eq, notInArray, sql } from "drizzle-orm";
-import { drizzle, type BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
+import { type BunSQLiteDatabase, drizzle } from "drizzle-orm/bun-sqlite";
+import type * as schema from "./schema";
+import { checkResults, incidents, monitorState, monitors } from "./schema";
 import type {
   CheckOutcome,
   Monitor,
   MonitorState,
   MonitorStatus,
 } from "./types";
-import type * as schema from "./schema";
-import { checkResults, incidents, monitors, monitorState } from "./schema";
 
 export interface AppDatabase {
   client: Database;

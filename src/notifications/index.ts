@@ -1,9 +1,9 @@
 import type { AppConfig } from "../config";
-import type { Notifier } from "./types";
 import { createDiscordNotifier } from "./discord";
 import { createResendNotifier } from "./resend";
 import { createSlackNotifier } from "./slack";
 import { createTelegramNotifier } from "./telegram";
+import type { Notifier } from "./types";
 
 export function buildNotifiers(config: AppConfig): Notifier[] {
   const notifiers: Notifier[] = [];
