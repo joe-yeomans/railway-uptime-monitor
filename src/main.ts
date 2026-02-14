@@ -68,15 +68,11 @@ async function main(): Promise<void> {
 
     const monitorInputs = targetServices
       .map((service) => {
-        const url = resolveMonitorUrl(service, config.targetDomainMode);
+        const url = resolveMonitorUrl(service);
         if (!url) {
-          logger.warn(
-            "Skipping service due to unavailable URL for selected TARGET_DOMAIN_MODE",
-            {
-              service: service.serviceName,
-              targetDomainMode: config.targetDomainMode,
-            },
-          );
+          logger.warn("Skipping service due to unavailable public URL", {
+            service: service.serviceName,
+          });
           return null;
         }
 
@@ -104,7 +100,6 @@ async function main(): Promise<void> {
       logger.info("Configured monitor target", {
         service: monitor.serviceName,
         url: monitor.url,
-        targetDomainMode: config.targetDomainMode,
       });
     }
 
@@ -139,27 +134,15 @@ async function main(): Promise<void> {
   logger.info("Monitor started", {
     checkIntervalSeconds: config.checkIntervalSeconds,
     discoveryIntervalSeconds: config.discoveryIntervalSeconds,
-    targetDomainMode: config.targetDomainMode,
     healthcheckPath: config.healthcheckPath,
     healthPort: healthServer.port,
   });
 }
 
-function resolveMonitorUrl(
-  service: DiscoveredRailwayService,
-  mode: "private" | "public" | "auto",
-): string | null {
-  const privateUrl =
-    service.privateHost && service.privatePort
-      ? `http://${service.privateHost}:${service.privatePort}${service.healthcheckPath}`
-      : null;
-  const publicUrl = service.publicHost
+function resolveMonitorUrl(service: DiscoveredRailwayService): string | null {
+  return service.publicHost
     ? `https://${service.publicHost}${service.healthcheckPath}`
     : null;
-
-  if (mode === "private") return privateUrl;
-  if (mode === "public") return publicUrl;
-  return privateUrl ?? publicUrl;
 }
 
 function shouldMonitorService(

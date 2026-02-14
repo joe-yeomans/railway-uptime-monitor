@@ -4,12 +4,12 @@
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/IxsFmY?referralCode=lhTVtu&utm_medium=integration&utm_source=template&utm_campaign=generic)
 
-Railway-specific uptime monitoring for private or public service health checks with incident tracking and alert notifications.
+Railway-specific uptime monitoring for public service health checks with incident tracking and alert notifications.
 
 ## What this does
 
 - Discovers services in a Railway project environment via Railway GraphQL API
-- Resolves monitor targets via Railway private domains, public domains, or automatic selection
+- Resolves monitor targets via Railway public domains
 - Runs recurring HTTP checks with configurable timeout and expected status range
 - Tracks monitor state and incidents in local SQLite
 - Sends DOWN/RECOVERED notifications to Slack, Discord, Telegram, and Resend email
@@ -65,8 +65,6 @@ bun run dev
 - `RECOVERY_THRESHOLD` (default `2`)
 - `EXPECTED_STATUS_MIN` (default `200`)
 - `EXPECTED_STATUS_MAX` (default `299`)
-- `TARGET_DOMAIN_MODE` (`private`, `public`, `auto`)
-  - default: `public` in development, `private` in production
 
 ### Optional service filters
 

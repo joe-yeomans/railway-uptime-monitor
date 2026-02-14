@@ -23,7 +23,6 @@ export interface AppConfig {
   recoveryThreshold: number;
   expectedStatusMin: number;
   expectedStatusMax: number;
-  targetDomainMode: "private" | "public" | "auto";
   railwayServiceId?: string;
   railwayServiceName?: string;
   slackWebhookUrl?: string;
@@ -58,7 +57,6 @@ export function loadConfig(): AppConfig {
     recoveryThreshold: numeric("RECOVERY_THRESHOLD", 2),
     expectedStatusMin: numeric("EXPECTED_STATUS_MIN", 200),
     expectedStatusMax: numeric("EXPECTED_STATUS_MAX", 299),
-    targetDomainMode: targetDomainMode(),
     railwayServiceId: optional("RAILWAY_SERVICE_ID"),
     railwayServiceName: optional("RAILWAY_SERVICE_NAME"),
     slackWebhookUrl: optional("SLACK_WEBHOOK_URL"),
@@ -115,24 +113,6 @@ function resendConfig(): ResendConfig | undefined {
   const toEmail = optional("RESEND_TO_EMAIL");
   if (!apiKey || !fromEmail || !toEmail) return undefined;
   return { apiKey, fromEmail, toEmail };
-}
-
-function targetDomainMode(): "private" | "public" | "auto" {
-  const raw = optional("TARGET_DOMAIN_MODE");
-  if (!raw) {
-    return Bun.env.NODE_ENV === "production" ? "private" : "public";
-  }
-
-  const normalized = raw.toLowerCase();
-  if (
-    normalized === "private" ||
-    normalized === "public" ||
-    normalized === "auto"
-  ) {
-    return normalized;
-  }
-
-  throw new Error("TARGET_DOMAIN_MODE must be one of: private, public, auto");
 }
 
 function healthcheckPath(): string {
